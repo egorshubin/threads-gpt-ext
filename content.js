@@ -1,3 +1,6 @@
+let isFirstCall = true;
+let timeoutId = null;
+
 function insertButtonBelowLastResponse() {
     const gptMessages = [...document.querySelectorAll('.text-base > .agent-turn')];
     if (gptMessages.length === 0) return;
@@ -8,23 +11,25 @@ function insertButtonBelowLastResponse() {
     if (!container || container.querySelector('#save-thread-btn')) return;
 
     const btn = createSaveThreadButton();
-    container.appendChild(btn);
+
+    if (isFirstCall) {
+        container.appendChild(btn);
+        isFirstCall = false;
+    } else {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+
+        timeoutId = setTimeout(() => {
+            if (!container.querySelector('#save-thread-btn')) {
+                container.appendChild(btn);
+            }
+        }, 3000)
+    }
 }
 
-const observer = new MutationObserver((mutations) => {
-    for (const mutation of mutations) {
-        for (const node of mutation.addedNodes) {
-            if (
-                node.nodeType === 1 &&
-                node.matches('div.flex.justify-between')
-            ) {
-                insertButtonBelowLastResponse();
-                return;
-            }
-        }
-    }
-});
-observer.observe(document.body, { childList: true, subtree: true });
+const observer = new MutationObserver(() => insertButtonBelowLastResponse());
+observer.observe(document.body, {childList: true, subtree: true});
 
 /* Functions */
 function createSaveThreadButton() {
@@ -42,7 +47,7 @@ function createSaveThreadButton() {
         display: inline-flex;
         align-items: center;
         width: fit-content;
-        line-height: 1.1em;
+        line-height: 1em;
     `;
 
     const icon = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -69,9 +74,9 @@ function createSaveThreadButton() {
         const threadName = prompt("Enter a name for this thread:", "Untitled Thread");
         if (!threadName) return;
 
-        chrome.storage.local.get({ threads: [] }, (res) => {
-            res.threads.push({ name: threadName, messages, timestamp: Date.now() });
-            chrome.storage.local.set({ threads: res.threads });
+        chrome.storage.local.get({threads: []}, (res) => {
+            res.threads.push({name: threadName, messages, timestamp: Date.now()});
+            chrome.storage.local.set({threads: res.threads});
             alert("Thread saved!");
         });
     });
