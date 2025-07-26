@@ -1,5 +1,5 @@
-let isFirstCall = true;
-let timeoutId = null;
+const observer = new MutationObserver(() => insertButtonBelowLastResponse());
+observer.observe(document.body, {childList: true, subtree: true});
 
 function insertButtonBelowLastResponse() {
     const gptMessages = [...document.querySelectorAll('.text-base > .agent-turn')];
@@ -12,24 +12,12 @@ function insertButtonBelowLastResponse() {
 
     const btn = createSaveThreadButton();
 
-    if (isFirstCall) {
-        container.appendChild(btn);
-        isFirstCall = false;
-    } else {
-        if (timeoutId) {
-            clearTimeout(timeoutId);
+    setTimeout(() => {
+        if (!container.querySelector('#save-thread-btn')) {
+            container.appendChild(btn);
         }
-
-        timeoutId = setTimeout(() => {
-            if (!container.querySelector('#save-thread-btn')) {
-                container.appendChild(btn);
-            }
-        }, 3000)
-    }
+    }, 2000)
 }
-
-const observer = new MutationObserver(() => insertButtonBelowLastResponse());
-observer.observe(document.body, {childList: true, subtree: true});
 
 /* Functions */
 function createSaveThreadButton() {
@@ -69,18 +57,93 @@ function createSaveThreadButton() {
     btn.appendChild(icon);
     btn.appendChild(span);
 
-    btn.addEventListener("click", () => {
-        const messages = [...document.querySelectorAll(".text-base")].map(el => el.innerText);
-        const threadName = prompt("Enter a name for this thread:", "Untitled Thread");
-        if (!threadName) return;
-
-        chrome.storage.local.get({threads: []}, (res) => {
-            res.threads.push({name: threadName, messages, timestamp: Date.now()});
-            chrome.storage.local.set({threads: res.threads});
-            alert("Thread saved!");
-        });
-    });
+    btn.addEventListener("click", handleSaveThreadClick);
 
     return btn;
 }
 
+function handleSaveThreadClick() {
+    const messages = [...document.querySelectorAll(".text-base")].map(el => el.innerText);
+    if (messages.length === 0) return;
+
+    const originalUrl = window.location.href;
+    const originalTitle = document.title || "Original Thread";
+    const threadTitle = `Thread ${new Date().toLocaleString()}`;
+
+    // Сохраняем в localStorage
+    localStorage.setItem("isCreateThread", "1");
+    localStorage.setItem("threadMessages", JSON.stringify(messages));
+    localStorage.setItem("threadOriginalUrl", originalUrl);
+    localStorage.setItem("threadOriginalTitle", originalTitle);
+    localStorage.setItem("threadTitle", threadTitle);
+
+    // Кликаем на кнопку "Новый чат"
+    const newChatBtn = document.querySelector('a[href="/"]');
+    if (newChatBtn) {
+        newChatBtn.click();
+    } else {
+        alert("Не удалось найти кнопку 'Новый чат'");
+    }
+}
+
+let isMessageAdded = false;
+
+function handleNewChat() {
+    if (localStorage.getItem("isCreateThread") === "1" && !window.location.pathname.startsWith('/c/')) {
+        const editor = document.querySelector("#prompt-textarea");
+
+        if (!editor) return;
+
+        if (!isMessageAdded) {
+            const threadMessages = JSON.parse(localStorage.getItem("threadMessages") || "[]");
+
+            if (threadMessages.length === 0) {
+                localStorage.setItem("isCreateThread", "0");
+                return;
+            }
+
+            const instructions = "This is chat history. Just prepare to answer other questions";
+
+            // Вставка текста в ProseMirror
+            const text = threadMessages.join("\n\n") + "\n\n" + instructions;
+            editor.focus();
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand("insertText", false, text);
+
+            isMessageAdded = true;
+        }
+
+        // Клик по кнопке "отправить"
+        const sendBtn = document.querySelector('#composer-submit-button');
+
+        if (!sendBtn) {
+
+        } else {
+            triggerNativeClick(sendBtn);
+
+            const threadTitle = localStorage.getItem("threadTitle");
+            const originalUrl = localStorage.getItem("threadOriginalUrl");
+            const originalTitle = localStorage.getItem("threadOriginalTitle");
+
+            localStorage.setItem("isCreateThread", "0");
+            // localStorage.setItem("threadMessages", "[]");
+        }
+    }
+}
+
+const threadObserver = new MutationObserver(() => handleNewChat());
+threadObserver.observe(document.body, {childList: true, subtree: true});
+
+function triggerNativeClick(element) {
+    const evt = new MouseEvent("click", {
+        bubbles: true,
+        cancelable: true,
+        view: window,
+    });
+    element.dispatchEvent(evt);
+}
