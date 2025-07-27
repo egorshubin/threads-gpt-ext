@@ -12,7 +12,7 @@ function insertButtonBelowLastResponse() {
 
     if (!container || container.querySelector('#save-thread-btn')) return;
 
-    removeAllSaveThreadButtons();
+    removeOldThreadButtons();
 
     const btn = createSaveThreadButton();
 
@@ -70,7 +70,7 @@ function createSaveThreadButton() {
     return btn;
 }
 
-function removeAllSaveThreadButtons() {
+function removeOldThreadButtons() {
     // Находим все кнопки с ID "save-thread-btn"
     const buttons = document.querySelectorAll('#save-thread-btn');
 
