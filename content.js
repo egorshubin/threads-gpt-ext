@@ -1,6 +1,8 @@
 const observer = new MutationObserver(() => insertButtonBelowLastResponse());
 observer.observe(document.body, {childList: true, subtree: true});
 
+let timeoutId = null;
+
 function insertButtonBelowLastResponse() {
     const gptMessages = [...document.querySelectorAll('.text-base > .agent-turn')];
     if (gptMessages.length === 0) return;
@@ -12,7 +14,11 @@ function insertButtonBelowLastResponse() {
 
     const btn = createSaveThreadButton();
 
-    setTimeout(() => {
+    if (timeoutId) {
+        clearTimeout(timeoutId);
+    }
+
+    timeoutId = setTimeout(() => {
         if (!container.querySelector('#save-thread-btn')) {
             container.appendChild(btn);
         }
