@@ -12,6 +12,8 @@ function insertButtonBelowLastResponse() {
 
     if (!container || container.querySelector('#save-thread-btn')) return;
 
+    removeAllSaveThreadButtons();
+
     const btn = createSaveThreadButton();
 
     if (timeoutId) {
@@ -22,7 +24,7 @@ function insertButtonBelowLastResponse() {
         if (!container.querySelector('#save-thread-btn')) {
             container.appendChild(btn);
         }
-    }, 3000)
+    }, 1000)
 }
 
 /* Functions */
@@ -67,6 +69,22 @@ function createSaveThreadButton() {
 
     return btn;
 }
+
+function removeAllSaveThreadButtons() {
+    // Находим все кнопки с ID "save-thread-btn"
+    const buttons = document.querySelectorAll('#save-thread-btn');
+
+    console.log(`Найдено кнопок для удаления: ${buttons.length}`);
+
+    // Удаляем каждую кнопку
+    buttons.forEach((button, index) => {
+        console.log(`Удаляем кнопку ${index + 1}`);
+        button.remove();
+    });
+
+    console.log('Все кнопки "Save as Thread" удалены');
+}
+
 
 function handleSaveThreadClick() {
     const messages = [...document.querySelectorAll(".text-base")].map(el => el.innerText);
