@@ -74,20 +74,16 @@ function removeOldThreadButtons() {
     // Находим все кнопки с ID "save-thread-btn"
     const buttons = document.querySelectorAll('#save-thread-btn');
 
-    console.log(`Найдено кнопок для удаления: ${buttons.length}`);
-
     // Удаляем каждую кнопку
     buttons.forEach((button, index) => {
         console.log(`Удаляем кнопку ${index + 1}`);
         button.remove();
     });
-
-    console.log('Все кнопки "Save as Thread" удалены');
 }
 
 
 function handleSaveThreadClick() {
-    const messages = [...document.querySelectorAll(".text-base")].map(el => el.innerText);
+    const messages = collectMessages()
     // console.log('🚨 Thread button click')
     // console.log('Messages length: ', messages.length);
     if (messages.length === 0) return;
@@ -110,6 +106,97 @@ function handleSaveThreadClick() {
     } else {
         alert("Не удалось найти кнопку 'Новый чат'");
     }
+}
+
+function collectMessages() {
+    const originalElements = document.querySelectorAll('.text-base');
+    if (originalElements.length === 0) return [];
+
+    // Создаём фрагмент-копию всех элементов
+    const fragment = document.createDocumentFragment();
+    const clones = [];
+
+    originalElements.forEach(el => {
+        const clone = el.cloneNode(true);
+        fragment.appendChild(clone);
+        clones.push(clone);
+    });
+
+    // Обрабатываем копии
+    clones.forEach(el => {
+        const isAssistantMessage = el.querySelector('.agent-turn') !== null;
+
+        // Удаляем "Save as Thread" кнопки
+        const saveBtn = el.querySelector('#save-thread-btn');
+        if (saveBtn) saveBtn.remove();
+
+        // Более точное удаление Tools элемента
+        const toolsElements = el.querySelectorAll('*');
+        toolsElements.forEach(element => {
+            // Проверяем только непосредственный текст элемента, не включая дочерние
+            const directText = Array.from(element.childNodes)
+                .filter(node => node.nodeType === Node.TEXT_NODE)
+                .map(node => node.textContent.trim())
+                .join('');
+
+            if (directText === 'Tools' && element.children.length === 0) {
+                element.remove();
+            }
+        });
+
+        // Более точное удаление технических скриптов
+        const scriptElements = el.querySelectorAll('script, style');
+        scriptElements.forEach(script => script.remove());
+
+        // Удаляем элементы с техническими атрибутами
+        const elementsWithTechContent = el.querySelectorAll('*');
+        elementsWithTechContent.forEach(node => {
+            // Проверяем только прямые текстовые узлы элемента
+            const directTextNodes = Array.from(node.childNodes)
+                .filter(child => child.nodeType === Node.TEXT_NODE);
+
+            directTextNodes.forEach(textNode => {
+                const text = textNode.textContent.trim();
+                if (
+                    text.startsWith('window.__oai_logHTML') ||
+                    text.startsWith('window.__oai_SSR_HTML') ||
+                    text.startsWith('window.__oai_logTTI') ||
+                    /^window\.__oai_\w+\(/.test(text)
+                ) {
+                    // Удаляем только текстовый узел, не весь элемент
+                    textNode.remove();
+                }
+            });
+
+            // Если элемент стал пустым после удаления текста, удаляем его
+            if (node.children.length === 0 && node.textContent.trim() === '') {
+                node.remove();
+            }
+        });
+
+        // Добавляем заголовки
+        if (!isAssistantMessage && !el.querySelector('.user-header')) {
+            const userHeader = createMessageHeader('User');
+            el.prepend(userHeader);
+        }
+
+        if (isAssistantMessage && !el.querySelector('.assistant-header')) {
+            const assistantHeader = createMessageHeader('Assistant');
+            el.prepend(assistantHeader);
+        }
+    });
+
+    // Возвращаем текст из обработанных копий
+    return clones.map(el => {
+        const text = el.innerText || el.textContent || '';
+        return text.trim();
+    }).filter(text => text.length > 0); // Фильтруем пустые сообщения
+}
+
+function createMessageHeader(sender) {
+    const header = document.createElement('div');
+    header.textContent = sender + ' Message:\n\n';
+    return header;
 }
 
 let isMessageAdded = false;
