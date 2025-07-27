@@ -16,7 +16,7 @@ function insertButtonBelowLastResponse() {
         if (!container.querySelector('#save-thread-btn')) {
             container.appendChild(btn);
         }
-    }, 2000)
+    }, 3000)
 }
 
 /* Functions */
@@ -64,6 +64,8 @@ function createSaveThreadButton() {
 
 function handleSaveThreadClick() {
     const messages = [...document.querySelectorAll(".text-base")].map(el => el.innerText);
+    console.log('🚨 Thread button click')
+    console.log('Messages length: ', messages.length);
     if (messages.length === 0) return;
 
     const originalUrl = window.location.href;
@@ -90,48 +92,61 @@ let isMessageAdded = false;
 
 function handleNewChat() {
     if (localStorage.getItem("isCreateThread") === "1" && !window.location.pathname.startsWith('/c/')) {
-        const editor = document.querySelector("#prompt-textarea");
+        console.log("🏓 Ping for new chat")
+        console.log("isCreateThread: ", localStorage.getItem("isCreateThread"))
+        console.log("threadMessages: ", JSON.parse(localStorage.getItem("threadMessages").length))
+        console.log("doesnt contain c: ", !window.location.pathname.startsWith('/c/'))
+        console.log("isMessageAdded: ", isMessageAdded)
 
-        if (!editor) return;
+        const existingMessages = document.querySelectorAll('.text-base > .agent-turn');
 
-        if (!isMessageAdded) {
-            const threadMessages = JSON.parse(localStorage.getItem("threadMessages") || "[]");
+        if (existingMessages.length === 0) {
+            const editor = document.querySelector("#prompt-textarea");
 
-            if (threadMessages.length === 0) {
-                localStorage.setItem("isCreateThread", "0");
-                return;
+            if (!editor) return;
+
+            if (!isMessageAdded) {
+                const threadMessages = JSON.parse(localStorage.getItem("threadMessages") || "[]");
+
+                if (threadMessages.length === 0) {
+                    localStorage.setItem("isCreateThread", "0");
+                    return;
+                }
+
+                const instructions = "This is chat history. Just prepare to answer other questions";
+
+                // Вставка текста в ProseMirror
+                const text = threadMessages.join("\n\n") + "\n\n" + instructions;
+                editor.focus();
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(editor);
+                range.collapse(false);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                document.execCommand("insertText", false, text);
+
+                isMessageAdded = true;
             }
 
-            const instructions = "This is chat history. Just prepare to answer other questions";
+            // Клик по кнопке "отправить"
+            const sendBtn = document.querySelector('#composer-submit-button');
 
-            // Вставка текста в ProseMirror
-            const text = threadMessages.join("\n\n") + "\n\n" + instructions;
-            editor.focus();
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            range.collapse(false);
-            selection.removeAllRanges();
-            selection.addRange(range);
-            document.execCommand("insertText", false, text);
+            if (!sendBtn) {
 
-            isMessageAdded = true;
-        }
+            } else {
+                triggerNativeClick(sendBtn);
 
-        // Клик по кнопке "отправить"
-        const sendBtn = document.querySelector('#composer-submit-button');
+                const threadTitle = localStorage.getItem("threadTitle");
+                const originalUrl = localStorage.getItem("threadOriginalUrl");
+                const originalTitle = localStorage.getItem("threadOriginalTitle");
 
-        if (!sendBtn) {
+                localStorage.setItem("isCreateThread", "0");
+                isMessageAdded = false;
+                // localStorage.setItem("threadMessages", "[]");
+            }
 
-        } else {
-            triggerNativeClick(sendBtn);
-
-            const threadTitle = localStorage.getItem("threadTitle");
-            const originalUrl = localStorage.getItem("threadOriginalUrl");
-            const originalTitle = localStorage.getItem("threadOriginalTitle");
-
-            localStorage.setItem("isCreateThread", "0");
-            // localStorage.setItem("threadMessages", "[]");
+            console.log('⚓ End Ping for new chat')
         }
     }
 }
