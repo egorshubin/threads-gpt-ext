@@ -64,8 +64,8 @@ function createSaveThreadButton() {
 
 function handleSaveThreadClick() {
     const messages = [...document.querySelectorAll(".text-base")].map(el => el.innerText);
-    console.log('🚨 Thread button click')
-    console.log('Messages length: ', messages.length);
+    // console.log('🚨 Thread button click')
+    // console.log('Messages length: ', messages.length);
     if (messages.length === 0) return;
 
     const originalUrl = window.location.href;
@@ -92,11 +92,11 @@ let isMessageAdded = false;
 
 function handleNewChat() {
     if (localStorage.getItem("isCreateThread") === "1" && !window.location.pathname.startsWith('/c/')) {
-        console.log("🏓 Ping for new chat")
-        console.log("isCreateThread: ", localStorage.getItem("isCreateThread"))
-        console.log("threadMessages: ", JSON.parse(localStorage.getItem("threadMessages").length))
-        console.log("doesnt contain c: ", !window.location.pathname.startsWith('/c/'))
-        console.log("isMessageAdded: ", isMessageAdded)
+        // console.log("🏓 Ping for new chat")
+        // console.log("isCreateThread: ", localStorage.getItem("isCreateThread"))
+        // console.log("threadMessages: ", JSON.parse(localStorage.getItem("threadMessages").length))
+        // console.log("doesnt contain c: ", !window.location.pathname.startsWith('/c/'))
+        // console.log("isMessageAdded: ", isMessageAdded)
 
         const existingMessages = document.querySelectorAll('.text-base > .agent-turn');
 
@@ -146,7 +146,7 @@ function handleNewChat() {
                 // localStorage.setItem("threadMessages", "[]");
             }
 
-            console.log('⚓ End Ping for new chat')
+            // console.log('⚓ End Ping for new chat')
         }
     }
 }
