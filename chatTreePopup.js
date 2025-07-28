@@ -1,23 +1,46 @@
+
 class ChatTreePopup {
     constructor() {
         this.chatTreeDB = null;
         this.expandedNodes = new Set();
+
+        // SVG иконки для expand/collapse
+        this.expandedSvg = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/>
+            </svg>
+        `;
+
+        this.collapsedSvg = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>
+            </svg>
+        `;
+
+        this.leafSvg = `
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
+        `;
+
         this.init();
     }
 
     async init() {
         try {
-            // Инициализируем базу данных
+            console.log('Initializing ChatTreePopup...');
+
+            // Инициализируем базу данных (теперь Chrome Storage)
             this.chatTreeDB = new ChatTreeDB();
             await this.chatTreeDB.init();
 
             this.setupUI();
-
-            // Загружаем дерево чатов из базы данных
             await this.loadChatTree();
+
+            console.log('ChatTreePopup initialized successfully');
         } catch (error) {
             console.error('Failed to initialize popup:', error);
-            this.showError('Failed to load chat data');
+            this.showError('Failed to load chat data: ' + error.message);
         }
     }
 
@@ -61,10 +84,20 @@ class ChatTreePopup {
 
     async loadChatTree() {
         try {
-            // Просто читаем из базы данных и строим дерево
+            console.log('Loading chat tree...');
+
+            if (!this.chatTreeDB) {
+                console.error('ChatTreeDB is not initialized');
+                this.showError('Database not initialized');
+                return;
+            }
+
+            // Читаем дерево чатов из Chrome Storage через ChatTreeDB
             const chatTree = await this.chatTreeDB.buildChatTree();
-            console.log('Loaded chat tree from DB:', chatTree);
+            console.log('Loaded chat tree:', chatTree);
+
             this.renderChatTree(chatTree);
+            console.log('Chat tree rendered successfully');
         } catch (error) {
             console.error('Error loading chat tree:', error);
             this.showError('Error loading chats: ' + error.message);
@@ -111,34 +144,16 @@ class ChatTreePopup {
 
         const hasChildren = node.children && node.children.length > 0;
         if (hasChildren) {
-            expandButton.innerHTML = this.expandedNodes.has(node.href) ? '▼' : '▶';
+            const isExpanded = this.expandedNodes.has(node.href);
+            expandButton.innerHTML = isExpanded ? this.expandedSvg : this.collapsedSvg;
+
             expandButton.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.toggleNode(node.href);
             });
         } else {
-            expandButton.innerHTML = '•';
+            expandButton.innerHTML = this.leafSvg;
             expandButton.disabled = true;
-        }
-
-        const nodeIcon = document.createElement('span');
-        nodeIcon.className = 'node-icon';
-
-        // Заменяем эмодзи на SVG иконки
-        if (node.isThread) {
-            nodeIcon.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M7 4V2C7 1.45 7.45 1 8 1H16C16.55 1 17 1.45 17 2V4H20C20.55 4 21 4.45 21 5S20.55 6 20 6H19V19C19 20.1 18.1 21 17 21H7C5.9 21 5 20.1 5 19V6H4C3.45 6 3 5.55 3 5S3.45 4 4 4H7ZM9 3V4H15V3H9ZM7 6V19H17V6H7Z"/>
-                    <path d="M9 8V17H11V8H9ZM13 8V17H15V8H13Z"/>
-                </svg>
-            `;
-        } else {
-            nodeIcon.innerHTML = `
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2ZM20 16H5.17L4 17.17V4H20V16Z"/>
-                    <path d="M7 9H17V11H7V9ZM7 12H14V14H7V12Z"/>
-                </svg>
-            `;
         }
 
         const nodeTitle = document.createElement('a');
@@ -151,14 +166,8 @@ class ChatTreePopup {
             this.openChat(node.href);
         });
 
-        const nodeInfo = document.createElement('span');
-        nodeInfo.className = 'node-info';
-        nodeInfo.textContent = `(${node.messageCount || 0})`;
-
         nodeContent.appendChild(expandButton);
-        nodeContent.appendChild(nodeIcon);
         nodeContent.appendChild(nodeTitle);
-        nodeContent.appendChild(nodeInfo);
 
         listItem.appendChild(nodeContent);
 
@@ -193,7 +202,7 @@ class ChatTreePopup {
 
             if (childrenContainer) {
                 const isExpanded = this.expandedNodes.has(nodeHref);
-                expandBtn.innerHTML = isExpanded ? '▼' : '▶';
+                expandBtn.innerHTML = isExpanded ? this.expandedSvg : this.collapsedSvg;
                 childrenContainer.style.display = isExpanded ? 'block' : 'none';
             }
         }
@@ -207,7 +216,7 @@ class ChatTreePopup {
             if (childrenContainer) {
                 this.expandedNodes.add(href);
                 const expandBtn = node.querySelector('.expand-btn');
-                expandBtn.innerHTML = '▼';
+                expandBtn.innerHTML = this.expandedSvg;
                 childrenContainer.style.display = 'block';
             }
         });
@@ -220,13 +229,14 @@ class ChatTreePopup {
 
             if (childrenContainer) {
                 const expandBtn = node.querySelector('.expand-btn');
-                expandBtn.innerHTML = '▶';
+                expandBtn.innerHTML = this.collapsedSvg;
                 childrenContainer.style.display = 'none';
             }
         });
     }
 
     truncateTitle(title, maxLength = 40) {
+        if (!title) return 'Untitled Chat';
         if (title.length <= maxLength) return title;
         return title.substring(0, maxLength) + '...';
     }

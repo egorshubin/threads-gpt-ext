@@ -37,7 +37,7 @@ function insertButtonsToAllAgentMessages() {
             const btn = createSaveThreadButton(index);
             container.appendChild(btn);
         });
-    }, 1000);
+    }, 2000);
 }
 
 function createSaveThreadButton(messageIndex) {
@@ -102,20 +102,33 @@ async function handleSaveThreadClick(messageIndex) {
     localStorage.setItem("threadParentTitle", currentTitle);
     localStorage.setItem("threadTitle", threadTitle);
 
-    // Также сохраняем текущий чат в БД, если его еще нет
+    // Также сохраняем/обновляем текущий чат в Chrome Storage через ChatTreeDB
     try {
         const existingChat = await chatTreeDB.getChat(currentUrl);
-        if (!existingChat) {
+        const messageCount = document.querySelectorAll('.text-base').length;
+
+        if (existingChat) {
+            // Обновляем существующий чат
+            await chatTreeDB.updateChat(currentUrl, {
+                title: currentTitle,
+                messageCount: messageCount,
+                updatedAt: new Date().toISOString()
+            });
+        } else {
+            // Создаем новый чат
             await chatTreeDB.createChat({
                 href: currentUrl,
                 title: currentTitle,
                 parentHref: null,
                 isThread: false,
-                messageCount: document.querySelectorAll('.text-base').length
+                messageCount: messageCount,
+                createdAt: new Date().toISOString()
             });
         }
+
+        console.log('Current chat saved/updated in Chrome Storage:', currentUrl);
     } catch (error) {
-        console.error('Error saving current chat to DB:', error);
+        console.error('Error saving current chat to Chrome Storage:', error);
     }
 
     // Кликаем на кнопку "Новый чат"
@@ -134,14 +147,14 @@ async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
     }
 
     try {
-        // Определяем глибину вложенности
+        // Определяем глубину вложенности
         let depth = 0;
         const parentChat = await chatTreeDB.getChat(parentUrl);
         if (parentChat) {
             depth = parentChat.depth + 1;
         }
 
-        // Создаем новый поток
+        // Создаем новый поток в Chrome Storage через ChatTreeDB
         await chatTreeDB.createChat({
             href: newChatUrl,
             title: chatTitle,
@@ -149,12 +162,13 @@ async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
             isThread: true,
             depth: depth,
             originalUrl: parentUrl,
-            messageCount: 1 // Начальное сообщение с историей
+            messageCount: 1, // Начальное сообщение с историей
+            createdAt: new Date().toISOString()
         });
 
-        console.log(`Thread saved to DB: ${chatTitle} (${newChatUrl}) -> parent: ${parentUrl}`);
+        console.log(`Thread saved to Chrome Storage: ${chatTitle} (${newChatUrl}) -> parent: ${parentUrl}`);
     } catch (error) {
-        console.error('Error saving thread to DB:', error);
+        console.error('Error saving thread to Chrome Storage:', error);
     }
 }
 
