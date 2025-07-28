@@ -1,8 +1,14 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Thread Saver",
+  "name": "Setty Chat: ChatGPT Branches and Threads",
   "version": "1.0",
-  "description": "Добавляет кнопку Save as Thread в чат ChatGPT и сохраняет треды.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "description": "Unravel your chats at chatgpt.com. Add a button to create threads from one chat and show them in a tree",
   "permissions": ["storage", "scripting", "activeTab"],
   "action": {
     "default_popup": "popup.html"
