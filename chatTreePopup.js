@@ -179,8 +179,46 @@ class ChatTreePopup {
             window.close()
         });
 
+        // Создаем контейнер для кнопок действий
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'node-actions';
+
+        // Кнопка переименования
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'action-btn rename-btn';
+        renameBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a.996.996 0 000-1.41L18.37 3.29a.996.996 0 00-1.41 0L15.13 5.12l3.75 3.75 1.83-1.83z"/>
+        </svg>
+    `;
+        renameBtn.title = 'Rename';
+        renameBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.renameChat(node.href, node.title);
+        });
+
+        // Кнопка удаления
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'action-btn delete-btn';
+        deleteBtn.innerHTML = `
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+        </svg>
+    `;
+        deleteBtn.title = 'Delete';
+        deleteBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            this.deleteChat(node.href, node.title);
+        });
+
+        actionsContainer.appendChild(renameBtn);
+        actionsContainer.appendChild(deleteBtn);
+
         nodeContent.appendChild(expandButton);
         nodeContent.appendChild(nodeTitle);
+        nodeContent.appendChild(actionsContainer);
 
         listItem.appendChild(nodeContent);
 
@@ -297,6 +335,32 @@ class ChatTreePopup {
             this.expandNodeRecursively(latestParent);
         }
     }
+
+    async renameChat(href, currentTitle) {
+        const newTitle = prompt('Enter new title:', currentTitle);
+        if (newTitle === null || newTitle.trim() === '') return;
+
+        try {
+            await this.chatTreeDB.renameChat(href, newTitle);
+            await this.loadChatTree(); // Перезагружаем дерево
+        } catch (error) {
+            alert('Error renaming chat: ' + error.message);
+        }
+    }
+
+    async deleteChat(href, title) {
+        const confirmed = confirm(`Are you sure you want to delete "${title}"?\n\nThis will also delete all child threads.`);
+        if (!confirmed) return;
+
+        try {
+            const deletedHrefs = await this.chatTreeDB.deleteChatWithChildren(href);
+            console.log(`Deleted ${deletedHrefs.length} chats`);
+            await this.loadChatTree(); // Перезагружаем дерево
+        } catch (error) {
+            alert('Error deleting chat: ' + error.message);
+        }
+    }
+
 }
 
 // Инициализируем popup при каждом открытии

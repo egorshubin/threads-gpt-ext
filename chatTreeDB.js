@@ -264,6 +264,51 @@ class ChatTreeDB {
             return null;
         }
     }
+
+    // Рекурсивно удалить чат и всех его потомков
+    async deleteChatWithChildren(href) {
+        try {
+            const result = await chrome.storage.local.get([this.storageKey]);
+            const allChats = result[this.storageKey] || [];
+
+            // Находим всех потомков рекурсивно
+            const toDelete = new Set();
+            const findChildren = (parentHref) => {
+                toDelete.add(parentHref);
+                const children = allChats.filter(chat => chat.parentHref === parentHref);
+                children.forEach(child => findChildren(child.href));
+            };
+
+            findChildren(href);
+
+            // Удаляем все найденные чаты
+            const filteredChats = allChats.filter(chat => !toDelete.has(chat.href));
+
+            await chrome.storage.local.set({ [this.storageKey]: filteredChats });
+
+            console.log(`Deleted ${toDelete.size} chats:`, Array.from(toDelete));
+            return Array.from(toDelete);
+        } catch (error) {
+            console.error('Error deleting chat with children:', error);
+            throw error;
+        }
+    }
+
+// Переименовать чат
+    async renameChat(href, newTitle) {
+        try {
+            if (!newTitle || newTitle.trim() === '') {
+                throw new Error('Title cannot be empty');
+            }
+
+            await this.updateChat(href, { title: newTitle.trim() });
+            console.log(`Chat renamed: ${href} -> ${newTitle}`);
+            return true;
+        } catch (error) {
+            console.error('Error renaming chat:', error);
+            throw error;
+        }
+    }
 }
 
 // Создаем глобальный экземпляр (сохраняем совместимость)

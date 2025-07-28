@@ -144,6 +144,55 @@
         body::-webkit-scrollbar-thumb:hover {
             background: #a8a8a8;
         }
+
+        /* rename delete buttons */
+        .node-actions {
+            display: flex;
+            gap: 2px;
+            margin-left: 4px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        .node-content:hover .node-actions {
+            opacity: 1;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 3px;
+            cursor: pointer;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #6b7280;
+            min-width: 18px;
+            min-height: 18px;
+        }
+
+        .action-btn:hover {
+            background-color: #e5e7eb;
+        }
+
+        .rename-btn:hover {
+            color: #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        .delete-btn:hover {
+            color: #ef4444;
+            background-color: #fef2f2;
+        }
+
+        .action-btn svg {
+            width: 12px;
+            height: 12px;
+            pointer-events: none;
+        }
+
     </style>
 </head>
 <body>
