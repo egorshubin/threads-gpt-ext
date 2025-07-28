@@ -6,7 +6,7 @@ async function initDatabase() {
         try {
             await chatTreeDB.init();
             dbInitialized = true;
-            console.log('ChatTreeDB initialized successfully');
+            // console.log('ChatTreeDB initialized successfully');
         } catch (error) {
             console.error('Failed to initialize ChatTreeDB:', error);
         }

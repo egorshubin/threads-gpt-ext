@@ -1,15 +1,168 @@
+
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body { font-family: sans-serif; width: 300px; padding: 10px; }
-        .thread { padding: 5px; margin-bottom: 5px; border-bottom: 1px solid #ddd; cursor: pointer; }
-        .thread:hover { background: #f0f0f0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            width: 350px;
+            max-height: 600px;
+            padding: 12px;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        h3 {
+            margin: 0 0 12px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .tree-controls {
+            display: flex;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .control-btn {
+            background: #f8f9fa;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            padding: 4px 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        .control-btn svg {
+            color: #6b7280;
+        }
+
+        .chat-tree {
+            font-size: 14px;
+        }
+
+        .tree-root, .tree-children {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .tree-children {
+            margin-left: 0;
+        }
+
+        .tree-node {
+            margin: 0;
+        }
+
+        .node-content {
+            display: flex;
+            align-items: center;
+            padding: 4px 0;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .node-content:hover {
+            background-color: #f3f4f6;
+        }
+
+        .expand-btn {
+            background: none;
+            border: none;
+            padding: 2px 6px;
+            margin-right: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            color: #6b7280;
+            min-width: 20px;
+            text-align: center;
+        }
+
+        .expand-btn:disabled {
+            cursor: default;
+            opacity: 0.5;
+        }
+
+        .node-icon {
+            margin-right: 6px;
+            font-size: 12px;
+        }
+
+        .node-title {
+            flex: 1;
+            text-decoration: none;
+            color: #374151;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .node-title:hover {
+            color: #059669;
+            text-decoration: underline;
+        }
+
+        .node-info {
+            margin-left: 8px;
+            font-size: 11px;
+            color: #9ca3af;
+            font-weight: 500;
+        }
+
+        .no-chats {
+            text-align: center;
+            color: #6b7280;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #fecaca;
+            text-align: center;
+        }
+
+        /* Стили для скроллбара */
+        body::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        body::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        body::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        body::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
     </style>
 </head>
 <body>
 <h3>Saved Threads</h3>
 <div id="thread-list"></div>
-<script src="popup.js"></script>
+<script src="chatTreeDB.js"></script>
+<script src="chatTreePopup.js"></script>
+
 </body>
 </html>

@@ -10,7 +10,7 @@
   "content_scripts": [
     {
       "matches": ["https://chatgpt.com/*"],
-      "js": ["content.js", "chatTreeDB.js"],
+      "js": ["chatTreeDB.js", "content.js"],
       "run_at": "document_idle"
     }
   ]
