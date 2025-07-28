@@ -163,7 +163,16 @@ class ChatTreePopup {
         nodeTitle.title = node.title;
         nodeTitle.addEventListener('click', (e) => {
             e.preventDefault();
-            this.openChat(node.href);
+
+            if (e.ctrlKey || e.metaKey || e.button === 1) {
+                // Новая вкладка при Ctrl+клик или средней кнопке мыши
+                chrome.tabs.create({ url: node.href });
+            } else {
+                // Текущая вкладка при обычном клике
+                chrome.tabs.update({ url: node.href });
+            }
+
+            window.close()
         });
 
         nodeContent.appendChild(expandButton);
@@ -239,11 +248,6 @@ class ChatTreePopup {
         if (!title) return 'Untitled Chat';
         if (title.length <= maxLength) return title;
         return title.substring(0, maxLength) + '...';
-    }
-
-    openChat(href) {
-        chrome.tabs.create({ url: href });
-        window.close();
     }
 
     showError(message) {
