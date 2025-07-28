@@ -6,7 +6,7 @@ async function initDatabase() {
         try {
             await chatTreeDB.init();
             dbInitialized = true;
-            // console.log('ChatTreeDB initialized successfully');
+            console.log('ChatTreeDB initialized successfully');
         } catch (error) {
             console.error('Failed to initialize ChatTreeDB:', error);
         }
@@ -132,7 +132,7 @@ async function handleSaveThreadClick(messageIndex) {
             });
         }
 
-        console.log('Current chat saved/updated in Chrome Storage:', currentUrl);
+        // console.log('Current chat saved/updated in Chrome Storage:', currentUrl);
     } catch (error) {
         console.error('Error saving current chat to Chrome Storage:', error);
     }
@@ -156,7 +156,7 @@ async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
         // Проверяем, не существует ли уже такой поток
         const existingThread = await chatTreeDB.getChat(newChatUrl);
         if (existingThread) {
-            console.log('Thread already exists, skipping creation:', newChatUrl);
+            // console.log('Thread already exists, skipping creation:', newChatUrl);
             return;
         }
 
@@ -181,7 +181,7 @@ async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
 
         await chatTreeDB.updateRootParentTimestamp(newChatUrl);
 
-        console.log(`Thread saved to Chrome Storage: ${chatTitle} (${newChatUrl}) -> parent: ${parentUrl}`);
+        // console.log(`Thread saved to Chrome Storage: ${chatTitle} (${newChatUrl}) -> parent: ${parentUrl}`);
     } catch (error) {
         console.error('Error saving thread to Chrome Storage:', error);
     }
