@@ -127,6 +127,10 @@ class ChatTreePopup {
         });
 
         treeContainer.appendChild(treeList);
+
+        setTimeout(() => {
+            this.expandLatestParent();
+        }, 150); // Небольшая задержка для завершения DOM операций
     }
 
     createTreeNode(node, depth) {
@@ -253,6 +257,45 @@ class ChatTreePopup {
     showError(message) {
         const container = document.getElementById('thread-list');
         container.innerHTML = `<div class="error">${message}</div>`;
+    }
+
+    // Функция для раскрытия элемента и всех его дочерних элементов рекурсивно
+    expandNodeRecursively(nodeElement) {
+        const href = nodeElement.getAttribute('data-href');
+        const childrenContainer = nodeElement.querySelector('.tree-children');
+        const expandBtn = nodeElement.querySelector('.expand-btn');
+
+        if (childrenContainer && expandBtn) {
+            // Добавляем в набор раскрытых узлов
+            this.expandedNodes.add(href);
+
+            // Устанавливаем иконку раскрытого состояния
+            expandBtn.innerHTML = this.expandedSvg;
+
+            // Показываем дочерние элементы
+            childrenContainer.style.display = 'block';
+
+            // Рекурсивно раскрываем всех дочерних элементов
+            const childNodes = childrenContainer.querySelectorAll(':scope > .tree-node');
+            childNodes.forEach(child => {
+                this.expandNodeRecursively(child);
+            });
+        }
+    }
+
+// Функция для поиска и раскрытия последнего по дате родительского элемента
+    expandLatestParent() {
+        const treeRoot = document.querySelector('.tree-root');
+        if (!treeRoot) return;
+
+        // Находим все родительские элементы (элементы первого уровня)
+        const rootNodes = treeRoot.querySelectorAll(':scope > .tree-node');
+
+        if (rootNodes.length > 0) {
+            // Первый элемент в списке уже отсортирован по дате (последний по времени)
+            const latestParent = rootNodes[0];
+            this.expandNodeRecursively(latestParent);
+        }
     }
 }
 

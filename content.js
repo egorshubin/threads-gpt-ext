@@ -363,7 +363,7 @@ function showNotification(message, type = 'success') {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.9);
     color: ${colors[type] || colors.success};
     padding: 12px 16px;
     border-radius: 6px;
