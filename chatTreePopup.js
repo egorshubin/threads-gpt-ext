@@ -51,6 +51,14 @@ class ChatTreePopup {
         const controlsContainer = document.createElement('div');
         controlsContainer.className = 'tree-controls';
         controlsContainer.innerHTML = `
+        <div class="left-controls">
+            <button id="clear-all" class="control-btn clear-all-btn" title="Clear All Chats">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                </svg>
+            </button>
+        </div>
+        <div class="right-controls">
             <button id="expand-all" class="control-btn" title="Expand All">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 5.83L15.17 9l1.41-1.41L12 3 7.41 7.59 8.83 9 12 5.83zM12 18.17L8.83 15l-1.41 1.41L12 21l4.59-4.59L15.17 15 12 18.17z"/>
@@ -66,7 +74,8 @@ class ChatTreePopup {
                     <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
                 </svg>
             </button>
-        `;
+        </div>
+    `;
 
         // Создаем контейнер для дерева
         const treeContainer = document.createElement('div');
@@ -77,9 +86,22 @@ class ChatTreePopup {
         container.appendChild(treeContainer);
 
         // Добавляем обработчики событий для кнопок
+        document.getElementById('clear-all').addEventListener('click', () => this.clearAllChats());
         document.getElementById('expand-all').addEventListener('click', () => this.expandAll());
         document.getElementById('collapse-all').addEventListener('click', () => this.collapseAll());
         document.getElementById('refresh').addEventListener('click', () => this.loadChatTree());
+    }
+
+    async clearAllChats() {
+        const confirmed = confirm('Are you sure you want to delete ALL saved chats and threads?\n\nThis action cannot be undone.');
+        if (!confirmed) return;
+
+        try {
+            await this.chatTreeDB.clearAllChats();
+            await this.loadChatTree(); // Перезагружаем дерево
+        } catch (error) {
+            alert('Error clearing chats: ' + error.message);
+        }
     }
 
     async loadChatTree() {

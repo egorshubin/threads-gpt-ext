@@ -153,6 +153,13 @@ async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
     }
 
     try {
+        // Проверяем, не существует ли уже такой поток
+        const existingThread = await chatTreeDB.getChat(newChatUrl);
+        if (existingThread) {
+            console.log('Thread already exists, skipping creation:', newChatUrl);
+            return;
+        }
+
         // Определяем глубину вложенности
         let depth = 0;
         const parentChat = await chatTreeDB.getChat(parentUrl);
@@ -274,6 +281,7 @@ function createMessageHeader(sender) {
 }
 
 let isMessageAdded = false;
+let threadSaved = false; // Добавляем флаг для предотвращения повторного сохранения
 
 async function handleNewChat() {
     if (localStorage.getItem("isCreateThread") === "1" && !window.location.pathname.startsWith('/c/')) {
@@ -317,10 +325,13 @@ async function handleNewChat() {
         }
     }
 
-    // Добавляем проверку на новый URL чата
+    // Добавляем проверку на новый URL чата с защитой от дублирования
     if (localStorage.getItem("isCreateThread") === "0" &&
         window.location.pathname.startsWith('/c/') &&
-        isMessageAdded) {
+        isMessageAdded &&
+        !threadSaved) { // Добавляем проверку флага
+
+        threadSaved = true; // Устанавливаем флаг
 
         const newChatUrl = window.location.href;
         const chatTitle = localStorage.getItem("threadTitle");
@@ -333,9 +344,13 @@ async function handleNewChat() {
 
         isMessageAdded = false;
 
+        // Сбрасываем флаг через некоторое время для следующих потоков
+        setTimeout(() => {
+            threadSaved = false;
+        }, 1000);
+
         showNotification('New thread created. You can see the whole tree in the extension\'s popup', 'success')
     }
-
 }
 
 const threadObserver = new MutationObserver(() => handleNewChat());

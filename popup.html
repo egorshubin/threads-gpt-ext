@@ -21,11 +21,25 @@
 
         .tree-controls {
             display: flex;
-            justify-content: flex-end;
-            gap: 6px;
+            justify-content: space-between;
             margin-bottom: 10px;
             padding-bottom: 8px;
             border-bottom: 1px solid #e5e5e5;
+        }
+
+        .left-controls,
+        .right-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .clear-all-btn:hover {
+            background: #fef2f2;
+            border-color: #ef4444;
+        }
+
+        .clear-all-btn:hover svg {
+            color: #ef4444;
         }
 
         .control-btn {
