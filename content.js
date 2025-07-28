@@ -1,3 +1,21 @@
+// Инициализируем базу данных при загрузке
+let dbInitialized = false;
+
+async function initDatabase() {
+    if (!dbInitialized) {
+        try {
+            await chatTreeDB.init();
+            dbInitialized = true;
+            console.log('ChatTreeDB initialized successfully');
+        } catch (error) {
+            console.error('Failed to initialize ChatTreeDB:', error);
+        }
+    }
+}
+
+// Инициализируем БД сразу
+initDatabase();
+
 const observer = new MutationObserver(() => insertButtonsToAllAgentMessages());
 observer.observe(document.body, {childList: true, subtree: true});
 
@@ -22,7 +40,6 @@ function insertButtonsToAllAgentMessages() {
     }, 1000);
 }
 
-/* Functions */
 function createSaveThreadButton(messageIndex) {
     const btn = document.createElement("button");
     btn.className = "save-thread-btn";
@@ -66,20 +83,40 @@ function createSaveThreadButton(messageIndex) {
     return btn;
 }
 
-function handleSaveThreadClick(messageIndex) {
+async function handleSaveThreadClick(messageIndex) {
+    if (!dbInitialized) {
+        await initDatabase();
+    }
+
     const messages = collectMessagesUpTo(messageIndex);
     if (messages.length === 0) return;
 
-    const originalUrl = window.location.href;
-    const originalTitle = document.title || "Original Thread";
+    const currentUrl = window.location.href;
+    const currentTitle = document.title || "Original Thread";
     const threadTitle = `Thread ${new Date().toLocaleString()}`;
 
-    // Сохраняем в localStorage
+    // Сохраняем в localStorage для передачи данных
     localStorage.setItem("isCreateThread", "1");
     localStorage.setItem("threadMessages", JSON.stringify(messages));
-    localStorage.setItem("threadOriginalUrl", originalUrl);
-    localStorage.setItem("threadOriginalTitle", originalTitle);
+    localStorage.setItem("threadParentUrl", currentUrl);
+    localStorage.setItem("threadParentTitle", currentTitle);
     localStorage.setItem("threadTitle", threadTitle);
+
+    // Также сохраняем текущий чат в БД, если его еще нет
+    try {
+        const existingChat = await chatTreeDB.getChat(currentUrl);
+        if (!existingChat) {
+            await chatTreeDB.createChat({
+                href: currentUrl,
+                title: currentTitle,
+                parentHref: null,
+                isThread: false,
+                messageCount: document.querySelectorAll('.text-base').length
+            });
+        }
+    } catch (error) {
+        console.error('Error saving current chat to DB:', error);
+    }
 
     // Кликаем на кнопку "Новый чат"
     const newChatBtn = document.querySelector('a[href="/"]');
@@ -90,27 +127,55 @@ function handleSaveThreadClick(messageIndex) {
     }
 }
 
+// Функция для сохранения нового потока в БД
+async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
+    if (!dbInitialized) {
+        await initDatabase();
+    }
+
+    try {
+        // Определяем глибину вложенности
+        let depth = 0;
+        const parentChat = await chatTreeDB.getChat(parentUrl);
+        if (parentChat) {
+            depth = parentChat.depth + 1;
+        }
+
+        // Создаем новый поток
+        await chatTreeDB.createChat({
+            href: newChatUrl,
+            title: chatTitle,
+            parentHref: parentUrl,
+            isThread: true,
+            depth: depth,
+            originalUrl: parentUrl,
+            messageCount: 1 // Начальное сообщение с историей
+        });
+
+        console.log(`Thread saved to DB: ${chatTitle} (${newChatUrl}) -> parent: ${parentUrl}`);
+    } catch (error) {
+        console.error('Error saving thread to DB:', error);
+    }
+}
+
+// Остальные функции остаются без изменений...
 function collectMessagesUpTo(messageIndex) {
     const originalElements = document.querySelectorAll('.text-base');
     if (originalElements.length === 0) return [];
 
-    // Находим индекс элемента, соответствующего messageIndex-му сообщению агента
     const agentElements = [...document.querySelectorAll('.text-base > .agent-turn')];
     if (messageIndex >= agentElements.length) return [];
 
     const targetAgentElement = agentElements[messageIndex];
     const targetContainer = targetAgentElement.closest('.text-base');
 
-    // Найдем индекс этого контейнера среди всех .text-base элементов
     const allElements = [...originalElements];
     const cutoffIndex = allElements.indexOf(targetContainer);
 
     if (cutoffIndex === -1) return [];
 
-    // Берем только элементы до указанного индекса включительно
     const elementsToProcess = allElements.slice(0, cutoffIndex + 1);
 
-    // Создаём фрагмент-копию элементов
     const fragment = document.createDocumentFragment();
     const clones = [];
 
@@ -120,15 +185,12 @@ function collectMessagesUpTo(messageIndex) {
         clones.push(clone);
     });
 
-    // Обрабатываем копии
     clones.forEach(el => {
         const isAssistantMessage = el.querySelector('.agent-turn') !== null;
 
-        // Удаляем "Save as Thread" кнопки
         const saveBtns = el.querySelectorAll('.save-thread-btn');
         saveBtns.forEach(btn => btn.remove());
 
-        // Более точное удаление Tools элемента
         const toolsElements = el.querySelectorAll('*');
         toolsElements.forEach(element => {
             const directText = Array.from(element.childNodes)
@@ -141,11 +203,9 @@ function collectMessagesUpTo(messageIndex) {
             }
         });
 
-        // Более точное удаление технических скриптов
         const scriptElements = el.querySelectorAll('script, style');
         scriptElements.forEach(script => script.remove());
 
-        // Удаляем элементы с техническими атрибутами
         const elementsWithTechContent = el.querySelectorAll('*');
         elementsWithTechContent.forEach(node => {
             const directTextNodes = Array.from(node.childNodes)
@@ -168,7 +228,6 @@ function collectMessagesUpTo(messageIndex) {
             }
         });
 
-        // Добавляем заголовки
         if (!isAssistantMessage && !el.querySelector('.user-header')) {
             const userHeader = createMessageHeader('User');
             el.prepend(userHeader);
@@ -180,7 +239,6 @@ function collectMessagesUpTo(messageIndex) {
         }
     });
 
-    // Возвращаем текст из обработанных копий
     return clones.map(el => {
         const text = el.innerText || el.textContent || '';
         return text.trim();
@@ -195,7 +253,7 @@ function createMessageHeader(sender) {
 
 let isMessageAdded = false;
 
-function handleNewChat() {
+async function handleNewChat() {
     if (localStorage.getItem("isCreateThread") === "1" && !window.location.pathname.startsWith('/c/')) {
         const existingMessages = document.querySelectorAll('.text-base > .agent-turn');
 
@@ -214,7 +272,6 @@ function handleNewChat() {
 
                 const instructions = "This is chat history. Just prepare to answer other questions";
 
-                // Вставка текста в ProseMirror
                 const text = threadMessages.join("\n\n") + "\n\n" + instructions;
                 editor.focus();
                 const selection = window.getSelection();
@@ -228,23 +285,33 @@ function handleNewChat() {
                 isMessageAdded = true;
             }
 
-            // Клик по кнопке "отправить"
             const sendBtn = document.querySelector('#composer-submit-button');
 
-            if (!sendBtn) {
-
-            } else {
+            if (sendBtn) {
                 triggerNativeClick(sendBtn);
 
-                const threadTitle = localStorage.getItem("threadTitle");
-                const originalUrl = localStorage.getItem("threadOriginalUrl");
-                const originalTitle = localStorage.getItem("threadOriginalTitle");
-
                 localStorage.setItem("isCreateThread", "0");
-                isMessageAdded = false;
             }
         }
     }
+
+    // Добавляем проверку на новый URL чата
+    if (localStorage.getItem("isCreateThread") === "0" &&
+        window.location.pathname.startsWith('/c/') &&
+        isMessageAdded) {
+
+        const newChatUrl = window.location.href;
+        const chatTitle = localStorage.getItem("threadTitle");
+        const parentUrl = localStorage.getItem("threadParentUrl");
+
+        // Сохраняем новый поток в БД
+        if (newChatUrl !== parentUrl) {
+            await saveNewThreadToDB(newChatUrl, chatTitle, parentUrl);
+        }
+
+        isMessageAdded = false;
+    }
+
 }
 
 const threadObserver = new MutationObserver(() => handleNewChat());
