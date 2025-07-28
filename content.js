@@ -1,36 +1,32 @@
-const observer = new MutationObserver(() => insertButtonBelowLastResponse());
+const observer = new MutationObserver(() => insertButtonsToAllAgentMessages());
 observer.observe(document.body, {childList: true, subtree: true});
 
 let timeoutId = null;
 
-function insertButtonBelowLastResponse() {
+function insertButtonsToAllAgentMessages() {
     const gptMessages = [...document.querySelectorAll('.text-base > .agent-turn')];
     if (gptMessages.length === 0) return;
-
-    const lastMessage = gptMessages[gptMessages.length - 1];
-    const container = lastMessage.closest('div');
-
-    if (!container || container.querySelector('#save-thread-btn')) return;
-
-    removeOldThreadButtons();
-
-    const btn = createSaveThreadButton();
 
     if (timeoutId) {
         clearTimeout(timeoutId);
     }
 
     timeoutId = setTimeout(() => {
-        if (!container.querySelector('#save-thread-btn')) {
+        gptMessages.forEach((message, index) => {
+            const container = message.closest('div');
+            if (!container || container.querySelector('.save-thread-btn')) return;
+
+            const btn = createSaveThreadButton(index);
             container.appendChild(btn);
-        }
-    }, 1000)
+        });
+    }, 1000);
 }
 
 /* Functions */
-function createSaveThreadButton() {
+function createSaveThreadButton(messageIndex) {
     const btn = document.createElement("button");
-    btn.id = "save-thread-btn";
+    btn.className = "save-thread-btn";
+    btn.setAttribute("data-message-index", messageIndex);
     btn.style.cssText = `
         margin-top: 12px;
         padding: 6px 12px 6px 10px;
@@ -65,27 +61,13 @@ function createSaveThreadButton() {
     btn.appendChild(icon);
     btn.appendChild(span);
 
-    btn.addEventListener("click", handleSaveThreadClick);
+    btn.addEventListener("click", () => handleSaveThreadClick(messageIndex));
 
     return btn;
 }
 
-function removeOldThreadButtons() {
-    // Находим все кнопки с ID "save-thread-btn"
-    const buttons = document.querySelectorAll('#save-thread-btn');
-
-    // Удаляем каждую кнопку
-    buttons.forEach((button, index) => {
-        console.log(`Удаляем кнопку ${index + 1}`);
-        button.remove();
-    });
-}
-
-
-function handleSaveThreadClick() {
-    const messages = collectMessages()
-    // console.log('🚨 Thread button click')
-    // console.log('Messages length: ', messages.length);
+function handleSaveThreadClick(messageIndex) {
+    const messages = collectMessagesUpTo(messageIndex);
     if (messages.length === 0) return;
 
     const originalUrl = window.location.href;
@@ -108,15 +90,31 @@ function handleSaveThreadClick() {
     }
 }
 
-function collectMessages() {
+function collectMessagesUpTo(messageIndex) {
     const originalElements = document.querySelectorAll('.text-base');
     if (originalElements.length === 0) return [];
 
-    // Создаём фрагмент-копию всех элементов
+    // Находим индекс элемента, соответствующего messageIndex-му сообщению агента
+    const agentElements = [...document.querySelectorAll('.text-base > .agent-turn')];
+    if (messageIndex >= agentElements.length) return [];
+
+    const targetAgentElement = agentElements[messageIndex];
+    const targetContainer = targetAgentElement.closest('.text-base');
+
+    // Найдем индекс этого контейнера среди всех .text-base элементов
+    const allElements = [...originalElements];
+    const cutoffIndex = allElements.indexOf(targetContainer);
+
+    if (cutoffIndex === -1) return [];
+
+    // Берем только элементы до указанного индекса включительно
+    const elementsToProcess = allElements.slice(0, cutoffIndex + 1);
+
+    // Создаём фрагмент-копию элементов
     const fragment = document.createDocumentFragment();
     const clones = [];
 
-    originalElements.forEach(el => {
+    elementsToProcess.forEach(el => {
         const clone = el.cloneNode(true);
         fragment.appendChild(clone);
         clones.push(clone);
@@ -127,13 +125,12 @@ function collectMessages() {
         const isAssistantMessage = el.querySelector('.agent-turn') !== null;
 
         // Удаляем "Save as Thread" кнопки
-        const saveBtn = el.querySelector('#save-thread-btn');
-        if (saveBtn) saveBtn.remove();
+        const saveBtns = el.querySelectorAll('.save-thread-btn');
+        saveBtns.forEach(btn => btn.remove());
 
         // Более точное удаление Tools элемента
         const toolsElements = el.querySelectorAll('*');
         toolsElements.forEach(element => {
-            // Проверяем только непосредственный текст элемента, не включая дочерние
             const directText = Array.from(element.childNodes)
                 .filter(node => node.nodeType === Node.TEXT_NODE)
                 .map(node => node.textContent.trim())
@@ -151,7 +148,6 @@ function collectMessages() {
         // Удаляем элементы с техническими атрибутами
         const elementsWithTechContent = el.querySelectorAll('*');
         elementsWithTechContent.forEach(node => {
-            // Проверяем только прямые текстовые узлы элемента
             const directTextNodes = Array.from(node.childNodes)
                 .filter(child => child.nodeType === Node.TEXT_NODE);
 
@@ -163,12 +159,10 @@ function collectMessages() {
                     text.startsWith('window.__oai_logTTI') ||
                     /^window\.__oai_\w+\(/.test(text)
                 ) {
-                    // Удаляем только текстовый узел, не весь элемент
                     textNode.remove();
                 }
             });
 
-            // Если элемент стал пустым после удаления текста, удаляем его
             if (node.children.length === 0 && node.textContent.trim() === '') {
                 node.remove();
             }
@@ -190,7 +184,7 @@ function collectMessages() {
     return clones.map(el => {
         const text = el.innerText || el.textContent || '';
         return text.trim();
-    }).filter(text => text.length > 0); // Фильтруем пустые сообщения
+    }).filter(text => text.length > 0);
 }
 
 function createMessageHeader(sender) {
@@ -203,12 +197,6 @@ let isMessageAdded = false;
 
 function handleNewChat() {
     if (localStorage.getItem("isCreateThread") === "1" && !window.location.pathname.startsWith('/c/')) {
-        // console.log("🏓 Ping for new chat")
-        // console.log("isCreateThread: ", localStorage.getItem("isCreateThread"))
-        // console.log("threadMessages: ", JSON.parse(localStorage.getItem("threadMessages").length))
-        // console.log("doesnt contain c: ", !window.location.pathname.startsWith('/c/'))
-        // console.log("isMessageAdded: ", isMessageAdded)
-
         const existingMessages = document.querySelectorAll('.text-base > .agent-turn');
 
         if (existingMessages.length === 0) {
@@ -254,10 +242,7 @@ function handleNewChat() {
 
                 localStorage.setItem("isCreateThread", "0");
                 isMessageAdded = false;
-                // localStorage.setItem("threadMessages", "[]");
             }
-
-            // console.log('⚓ End Ping for new chat')
         }
     }
 }
