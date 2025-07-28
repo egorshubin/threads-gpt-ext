@@ -172,6 +172,8 @@ async function saveNewThreadToDB(newChatUrl, chatTitle, parentUrl) {
             createdAt: new Date().toISOString()
         });
 
+        await chatTreeDB.updateRootParentTimestamp(newChatUrl);
+
         console.log(`Thread saved to Chrome Storage: ${chatTitle} (${newChatUrl}) -> parent: ${parentUrl}`);
     } catch (error) {
         console.error('Error saving thread to Chrome Storage:', error);

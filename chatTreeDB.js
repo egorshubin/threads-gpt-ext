@@ -144,7 +144,7 @@ class ChatTreeDB {
             });
 
             // Сортируем по дате создания
-            const sortByDate = (a, b) => new Date(b.createdAt) - new Date(a.createdAt);
+            const sortByDate = (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt);
             rootChats.sort(sortByDate);
             rootChats.forEach(root => this.sortTreeChildren(root, sortByDate));
 
@@ -215,6 +215,53 @@ class ChatTreeDB {
                 maxBytes: 10 * 1024 * 1024,
                 usagePercentage: 0
             };
+        }
+    }
+
+    // Добавьте этот метод в класс ChatTreeDB
+
+// Найти корневой родительский чат в дереве
+    async findRootParent(chatHref) {
+        try {
+            const result = await chrome.storage.local.get([this.storageKey]);
+            const allChats = result[this.storageKey] || [];
+
+            let currentChat = allChats.find(chat => chat.href === chatHref);
+            if (!currentChat) return null;
+
+            // Поднимаемся по дереву до корневого родителя
+            while (currentChat.parentHref) {
+                const parentChat = allChats.find(chat => chat.href === currentChat.parentHref);
+                if (!parentChat) break;
+                currentChat = parentChat;
+            }
+
+            return currentChat;
+        } catch (error) {
+            console.error('Error finding root parent:', error);
+            return null;
+        }
+    }
+
+// Обновить updatedAt у корневого родителя треда
+    async updateRootParentTimestamp(childChatHref) {
+        try {
+            const rootParent = await this.findRootParent(childChatHref);
+            if (!rootParent) {
+                console.log('No root parent found for:', childChatHref);
+                return null;
+            }
+
+            // Обновляем только updatedAt у корневого родителя
+            const updatedParent = await this.updateChat(rootParent.href, {
+                updatedAt: new Date().toISOString()
+            });
+
+            console.log('Root parent timestamp updated:', rootParent.href);
+            return updatedParent;
+        } catch (error) {
+            console.error('Error updating root parent timestamp:', error);
+            return null;
         }
     }
 }
