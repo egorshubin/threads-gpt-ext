@@ -1,4 +1,3 @@
-
 class ChatTreePopup {
     constructor() {
         this.chatTreeDB = null;
