@@ -9,7 +9,7 @@
     "128": "icons/icon-128.png"
   },
   "description": "Unravel your chats at chatgpt.com. Add a button to create threads from one chat and show them in a tree",
-  "permissions": ["storage", "scripting", "activeTab"],
+  "permissions": ["storage"],
   "action": {
     "default_popup": "popup.html"
   },
